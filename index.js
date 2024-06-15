@@ -11,13 +11,15 @@ require("firebase/database");
 require("firebase/firestore");
 
 const cors = require("cors");
-app.use(
-  cors({
-    origin: "http://localhost:3000", // Change this to your client URL
-    methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
-    credentials: true,
-  })
-);
+app.use(cors());
+app.use((req, res, next) => {
+  res.setHeader("Access-Control-Allow-Origin", "http://localhost:3000");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept"
+  );
+  next();
+});
 // Middleware for parsing JSON and URL-encoded request bodies
 // Middleware for parsing JSON and URL-encoded request bodies
 app.use(express.json());
@@ -474,7 +476,7 @@ app.post("/register", async (req, res) => {
 
 //SERVER CHECK
 app.get("/", async (req, res) => {
-  res.send("Hello!! World i am safe");
+  res.send("Hello!! World i am done");
 });
 // START SERVER
 app.listen(port, () => {
