@@ -9,11 +9,12 @@ require("dotenv").config();
 require("firebase/auth");
 require("firebase/database");
 require("firebase/firestore");
+const frontURl = process.env.FRONT_URL || "http://localhost:3000";
 
 const cors = require("cors");
 app.use(cors());
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "https://new-cal-ai.vercel.app");
+  res.setHeader("Access-Control-Allow-Origin", `${frontURl}`);
   res.header(
     "Access-Control-Allow-Headers",
     "Origin, X-Requested-With, Content-Type, Accept"
@@ -255,8 +256,8 @@ app.post("/create-order", async (req, res) => {
     application_context: {
       brand_name: "CalAI",
       locale: "en-US",
-      return_url: `http://localhost:3000/success?${queryParams}`, // This is the returnUrl
-      cancel_url: "http://localhost:3000/cancel.html", // Your cancel URL
+      return_url: `${frontURl}/success?${queryParams}`, // This is the returnUrl
+      cancel_url: `${frontURl}/cancel`, // Your cancel URL
     },
   };
   const accessToken = await generateToken();
