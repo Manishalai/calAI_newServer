@@ -1,6 +1,7 @@
 const express = require("express");
 const firebase = require("firebase/app");
 const app = express();
+const fs = require("fs");
 const axios = require("axios");
 const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
@@ -9,9 +10,10 @@ require("dotenv").config();
 require("firebase/auth");
 require("firebase/database");
 require("firebase/firestore");
+const path = require("path");
 const frontURl = process.env.FRONT_URL || "http://localhost:3000";
-
 const cors = require("cors");
+
 app.use(cors());
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", `${frontURl}`);
@@ -21,6 +23,7 @@ app.use((req, res, next) => {
   );
   next();
 });
+
 // Middleware for parsing JSON and URL-encoded request bodies
 // Middleware for parsing JSON and URL-encoded request bodies
 app.use(express.json());
@@ -52,22 +55,22 @@ const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
 // NODEMAILER CONFIGURATION
 const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST,
-  port: process.env.SMTP_PORT,
-  secure: process.env.SMTP_SECURE === "true", // Convert to boolean
+  service: "gmail",
+  host: "smtp.gmail.email",
+  port: 587,
   auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS, // Your password
+    user: "kristin.p@calai.org",
+    pass: "hjve fsze lnvq pivz",
   },
 });
 
 // SEND WELCOME EMAIL
-async function sendWelcomeEmail(email) {
+async function sendWelcomeEmail() {
   try {
     // Create email message
     const mailOptions = {
       from: `Kristin Parker <kristin.p@calai.org>`, // Sender address
-      to: email, // Receiver address
+      to: "amanshankarsingh05@gmail.com", // Receiver address
       subject: "Welcome to Our App!", // Subject line
       html: "<p>Welcome to Our App!</p>", // HTML body (can be more complex)
     };
@@ -83,7 +86,52 @@ async function sendWelcomeEmail(email) {
   }
 }
 
-//CALLING SEND EMAIL API
+// SEND Brochure
+const sendBrochure = async (email) => {
+  console.log("Preparing to send email to:", email);
+  try {
+    const filePath = path.join(__dirname, "assets", "brochure.pdf");
+    const fileStream = fs.createReadStream(filePath);
+
+    // Create email message
+    const mailOptions = {
+      from: "Kristin Parker <kristin.p@calai.org>",
+      to: email,
+      subject: "Your Brochure is here",
+      text: "Please find attached your brochure.",
+      attachments: [
+        {
+          filename: "Cal-AI brochure.pdf",
+          content: fileStream, // Use stream here
+        },
+      ],
+    };
+
+    console.log("Mail options prepared:", mailOptions);
+
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Email sent successfully:", info.response);
+  } catch (error) {
+    console.error("Error sending email:", error.message);
+  }
+};
+
+//BROCHURE API
+app.post("/send-brochure", async (req, res) => {
+  const { email } = req.body;
+  try {
+    await sendBrochure(email);
+    res
+      .status(200)
+      .json({ success: true, message: "Brochure Sent Successfully" });
+  } catch (error) {
+    console.error("Error sending email to user:", error);
+    res.status(500).json({ success: false, message: "Failed to send email." });
+  }
+});
+
+//WELCOME MAIL API
 app.post("/send_welcome_email", async (req, res) => {
   const { email } = req.body;
   try {
@@ -478,6 +526,7 @@ app.post("/register", async (req, res) => {
 //SERVER CHECK
 app.get("/", async (req, res) => {
   res.send("Hello!! World i am done");
+  sendWelcomeEmail();
 });
 // START SERVER
 app.listen(port, () => {
