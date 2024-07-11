@@ -6,10 +6,12 @@ const axios = require("axios");
 const nodemailer = require("nodemailer");
 const PDFDocument = require("pdfkit");
 const bodyParser = require("body-parser");
+require("./scheduler");
 require("dotenv").config();
 require("firebase/auth");
 require("firebase/database");
 require("firebase/firestore");
+// const scheduler = require("./scheduler");
 const path = require("path");
 const frontURl = process.env.FRONT_URL || "http://localhost:3000";
 const cors = require("cors");
@@ -42,7 +44,7 @@ const firebaseConfig = {
   storageBucket: "calaisite.appspot.com",
   messagingSenderId: "137219193547",
   appId: "1:137219193547:web:6961a289776640ea47794e",
-  measurementId: "G-M0B2Q3JX9V",
+  measurementId: "G-CY4YK6JNEX",
   databaseURL: "https://calaisite-default-rtdb.firebaseio.com/",
 };
 firebase.initializeApp(firebaseConfig);
@@ -85,53 +87,6 @@ async function sendWelcomeEmail() {
     return { success: false, message: "Failed to send welcome email." };
   }
 }
-
-// SEND Brochure
-async function main(email) {
-  // send mail with defined transport object
-  const info = await transporter.sendMail({
-    from: '"Maddison Foo Koch 👻" <maddison53@ethereal.email>', // sender address
-    to: "bar@example.com, baz@example.com", // list of receivers
-    subject: "Hello ✔", // Subject line
-    text: "Hello world?", // plain text body
-    html: "<b>Hello world?</b>", // html body
-  });
-
-  console.log("Message sent: %s", info.messageId);
-  // Message sent: <d786aa62-4e0a-070a-47ed-0b0666549519@ethereal.email>
-}
-
-//BROCHURE API
-app.get("/download", async (req, res) => {
-  const { email } = req.body;
-  try {
-    res.download("./brochure.pdf");
-  } catch (error) {
-    console.error("Error sending email to user:", error);
-    res.status(500).json({ success: false, message: "Failed to download" });
-  }
-});
-
-app.post("/send-vedio", async (req, res) => {
-  const { email, country, name } = req.body;
-
-  const videoLink = "https://www.youtube.com/watch?v=HdQ_5TQva_I";
-  const mailOptions = {
-    from: process.env.SMTP_USER,
-    to: email,
-    subject: "Your Requested Video Link",
-    text: `Hi ${name},\n\nHere is your requested video link: ${videoLink}\n\nBest regards,\nYour Company`,
-    html: `<p>Hi ${name},</p><p>Here is your requested video link: <a href=${videoLink}>Click here</a></p><p>Best regards,<br>Your Company</p>`,
-  };
-
-  try {
-    await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "Email sent successfully." });
-  } catch (error) {
-    console.error("Error sending email:", error);
-    res.status(500).json({ error: "Failed to send email." });
-  }
-});
 
 //WELCOME MAIL API
 app.post("/send_welcome_email", async (req, res) => {
@@ -247,7 +202,7 @@ async function generatePdf(orderData, program) {
 async function sendEmailWithPdf(email, pdfBuffer) {
   const mailOptions = {
     from: "Kristin Parker <kristin.p@calai.org>",
-    to: "ama@gmail.com",
+    to: "amanshankarsingh05@gmail.com",
     subject: "Your Order Receipt",
     text: "Thank you for your purchase. Please find your order receipt attached.",
     attachments: [
@@ -288,10 +243,11 @@ const generateToken = async () => {
 //CREATING ORDER
 app.post("/create-order", async (req, res) => {
   const url = "https://api.sandbox.paypal.com/v2/checkout/orders";
-  const { amount, program } = req.body;
-  // console.log(amount);
+  const { amount, program, email } = req.body;
+  console.log(amount);
   const queryParams = new URLSearchParams({
-    cretification: program,
+    certification: program,
+    email: email,
   });
   const data = {
     intent: "CAPTURE",
@@ -369,20 +325,11 @@ app.post("/capture-order", async (req, res) => {
     const pdfBuffer = await generatePdf(orderData, program);
     // Send PDF via email
     await sendEmailWithPdf(orderData.payer.email_address, pdfBuffer);
-
-    // Store the order in Firestore
-    const orderRef = db
-      .collection("after_transaction")
-      .doc(orderData.payer.email_address)
-      .collection("successfulPayments")
-      .doc(orderId);
-    await orderRef.set(orderData);
-    console.log("Order Captured Successfully");
-
     // Send a success response
     return res.json({
       message: "Order captured successfully",
       transactionId: orderData.id,
+      transactionData: orderData,
     });
   } catch (error) {
     console.error("Error capturing order:", error.message);
