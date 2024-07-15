@@ -167,7 +167,7 @@ const fetchApplyBeforeLoginEmails = async () => {
 };
 
 // Schedule the task to run every 12 hours
-cron.schedule("0 */12 * * *", () => {
+cron.schedule("* * * * *", () => {
   console.log("Running the email check task");
   fetchEmails();
   fetchLoginBeforeApplyEmails();
