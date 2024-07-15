@@ -12,7 +12,7 @@ admin.initializeApp({
 
 const db = admin.firestore();
 
-const apiKey = process.env.BREVO_API_KEY // Replace with your Brevo API key
+const apiKey = `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`;
 
 const checkAndDeleteEmail = async (email) => {
   try {
@@ -169,7 +169,7 @@ const fetchApplyBeforeLoginEmails = async () => {
 // Schedule the task to run every 12 hours
 cron.schedule("* * * * *", () => {
   console.log("Running the email check task");
-  fetchEmails();
+  // fetchEmails();
   fetchLoginBeforeApplyEmails();
   fetchApplyBeforeLoginEmails();
 });
