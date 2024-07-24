@@ -203,7 +203,7 @@ async function generatePdf(orderData, program) {
 async function sendEmailWithPdf(email, pdfBuffer) {
   const mailOptions = {
     from: "Kristin Parker <kristin.p@calai.org>",
-    to: "amanshankarsingh05@gmail.com",
+    to: email,
     subject: "Your Order Receipt",
     text: "Thank you for your purchase. Please find your order receipt attached.",
     attachments: [
@@ -476,7 +476,6 @@ app.post("/register", async (req, res) => {
 //SERVER CHECK
 app.get("/", async (req, res) => {
   res.send("Hello!! World i am done");
-  sendWelcomeEmail();
 });
 // START SERVER
 app.listen(port, () => {
