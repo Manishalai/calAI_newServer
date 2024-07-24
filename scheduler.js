@@ -164,15 +164,15 @@ const fetchApplyBeforeLoginEmails = async () => {
 };
 
 // Schedule the task to run every 4 hours
-cron.schedule("* * * * *", () => {
-  console.log("Running the email check task");
+cron.schedule("0 */4 * * *", () => {
+  console.log("Running the email check task every 4 hours");
   fetchEmails(107); // Brevo ID for the 4-hour task
   fetchLoginBeforeApplyEmails();
   fetchApplyBeforeLoginEmails();
 });
 
 // Schedule the task to run every 24 hours
-cron.schedule("* * * * *", () => {
+cron.schedule("0 0 * * *", () => {
   console.log("Running the daily email check task");
   fetchEmails(110); // Brevo ID for the 24-hour task
 });
