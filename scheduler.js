@@ -11,8 +11,13 @@ admin.initializeApp({
 });
 
 const db = admin.firestore();
+const apiKey = `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`;
 
-const apiKey = `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`;
+const sendEmail = async (email) => {
+  // Function to send email (implement your email-sending logic here)
+  console.log(`Sending email to ${email}`);
+  // Example: await axios.post('your_email_api_endpoint', { email });
+};
 
 const checkAndDeleteEmail = async (email) => {
   try {
@@ -36,6 +41,7 @@ const checkAndDeleteEmail = async (email) => {
         },
       });
       console.log(`Email ${email} deleted from Brevo list.`);
+      await sendEmail(email); // Send email after deletion
     }
   } catch (error) {
     if (error.response && error.response.status === 404) {
@@ -50,9 +56,8 @@ const addEmailsToBrevoList = async (emails, listId) => {
   try {
     const promises = emails.map(async (email) => {
       try {
-        // Check and delete email if it exists
+        // Check and delete the email first
         await checkAndDeleteEmail(email);
-
         // Add the email to the Brevo list
         const response = await axios.post(
           "https://api.brevo.com/v3/contacts",
@@ -80,26 +85,15 @@ const addEmailsToBrevoList = async (emails, listId) => {
   }
 };
 
-const logCollectionNames = async () => {
-  try {
-    const collections = await db.listCollections();
-    const collectionNames = collections.map((collection) => collection.id);
-    console.log("Collections in Firestore:", collectionNames);
-  } catch (error) {
-    console.error("Error fetching collection names:", error);
-  }
-};
-
-const fetchEmails = async () => {
+const fetchEmails = async (brevoId) => {
   try {
     const beforeSnapshot = await db.collection("before_transaction").get();
+    const afterSnapshot = await db.collection("after_transaction").get();
 
     if (beforeSnapshot.empty) {
       console.log("No documents found in 'before_transaction' collection.");
       return;
     }
-
-    const afterSnapshot = await db.collection("after_transaction").get();
 
     if (afterSnapshot.empty) {
       console.log("No documents found in 'after_transaction' collection.");
@@ -118,6 +112,9 @@ const fetchEmails = async () => {
         "Emails present in before_transaction but not in after_transaction:",
         emailsNotInAfter
       );
+
+      // Add emails to Brevo list
+      await addEmailsToBrevoList(emailsNotInAfter, brevoId);
     } else {
       console.log(
         "All emails in before_transaction are present in after_transaction"
@@ -166,12 +163,18 @@ const fetchApplyBeforeLoginEmails = async () => {
   }
 };
 
-// Schedule the task to run every 12 hours
+// Schedule the task to run every 4 hours
 cron.schedule("* * * * *", () => {
   console.log("Running the email check task");
-  // fetchEmails();
+  fetchEmails(107); // Brevo ID for the 4-hour task
   fetchLoginBeforeApplyEmails();
   fetchApplyBeforeLoginEmails();
+});
+
+// Schedule the task to run every 24 hours
+cron.schedule("* * * * *", () => {
+  console.log("Running the daily email check task");
+  fetchEmails(110); // Brevo ID for the 24-hour task
 });
 
 console.log("Email check scheduler is running");

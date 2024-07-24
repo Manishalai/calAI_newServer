@@ -13,7 +13,7 @@ require("firebase/database");
 require("firebase/firestore");
 // const scheduler = require("./scheduler");
 const path = require("path");
-const frontURl = process.env.FRONT_URL || "https://www.calai.org";
+const frontURl = process.env.FRONT_URL || "'https://www.calai.org";
 const cors = require("cors");
 
 app.use(cors());
@@ -47,12 +47,13 @@ const firebaseConfig = {
   measurementId: "G-CY4YK6JNEX",
   databaseURL: "https://calaisite-default-rtdb.firebaseio.com/",
 };
+
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
 //PAYPAL CREDENTIALS
-const clientId = process.env.PAYPAL_CLIENT_ID_SANDBOX;
-const clientSecret = process.env.PAYPAL_SECRET_KEY_SANDBOX;
+const clientId = process.env.PAYPAL_CLIENT_ID;
+const clientSecret = process.env.PAYPAL_SECRET_KEY;
 const auth = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
 
 // NODEMAILER CONFIGURATION
@@ -223,7 +224,7 @@ async function sendEmailWithPdf(email, pdfBuffer) {
 const generateToken = async () => {
   try {
     const tokenResponse = await axios.post(
-      "https://api.sandbox.paypal.com/v1/oauth2/token",
+      "https://api.paypal.com/v1/oauth2/token",
       "grant_type=client_credentials",
       {
         headers: {
@@ -242,7 +243,7 @@ const generateToken = async () => {
 
 //CREATING ORDER
 app.post("/create-order", async (req, res) => {
-  const url = "https://api.sandbox.paypal.com/v2/checkout/orders";
+  const url = "https://api.paypal.com/v2/checkout/orders";
   const { amount, program, email } = req.body;
   console.log(amount);
   const queryParams = new URLSearchParams({
@@ -297,7 +298,7 @@ app.post("/capture-order", async (req, res) => {
       return res.status(400).json({ error: "Order ID is required" });
     }
 
-    const url = `https://api.sandbox.paypal.com/v2/checkout/orders/${orderId}/capture`;
+    const url = `https://api.paypal.com/v2/checkout/orders/${orderId}/capture`;
     const data = {
       note_to_payer: "Thank you for your purchase!",
     };
@@ -309,7 +310,7 @@ app.post("/capture-order", async (req, res) => {
     };
 
     // Check if the order is already captured before capturing it
-    const orderDetailsUrl = `https://api.sandbox.paypal.com/v2/checkout/orders/${orderId}`;
+    const orderDetailsUrl = `https://api.paypal.com/v2/checkout/orders/${orderId}`;
     const orderDetailsResponse = await axios.get(orderDetailsUrl, { headers });
     const orderDetails = orderDetailsResponse.data;
     console.log("order details:", orderDetails.status);
