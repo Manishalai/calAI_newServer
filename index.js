@@ -65,7 +65,7 @@ const db = firebase.firestore();
 //PAYPAL CREDENTIALS
 const clientId = process.env.PAYPAL_CLIENT_ID;
 const clientSecret = process.env.PAYPAL_SECRET_KEY;
-const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');
+const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');//
 
 //RAZORPAY CREDENTIALS
 const razorpay = new Razorpay({
@@ -227,7 +227,7 @@ async function sendEmailWithPdf(email, pdfBuffer) {
       {
         filename: 'receipt.pdf',
         content: pdfBuffer,
-        contentType: 'application/pdf',
+        contentType: 'application/pdf',//
       },
     ],
   };
@@ -330,8 +330,8 @@ app.post('/raz-capture-payment', async (req, res) => {
       await transactionRef.add(transactionData);
 
       //sending mail
-      const pdfBuffer = `Pyement successfully Rs ${captureResponse.amount/100}, TransactionId : ${captureResponse.id}` ;
-      await sendEmailWithPdf(captureResponse.email, pdfBuffer);
+      // const pdfBuffer = `Pyement successfully Rs ${captureResponse.amount/100}, TransactionId : ${captureResponse.id}` ;
+      // await sendEmailWithPdf(captureResponse.email, pdfBuffer);
 
       res.status(200).json({
         success: true,
@@ -347,6 +347,95 @@ app.post('/raz-capture-payment', async (req, res) => {
   }
 });
 
+//*** RAZORPAY FOR PAKISTAN *** */
+//CREATING ORDER [RAZORPAY]
+app.post('/create-razorpay-int-order', async (req, res) => {
+  try {
+    const { amount, program, email } = req.body;
+    console.log("amount:",typeof amount);
+    console.log("am:",amount);
+    const options = {
+      amount: amount,
+      currency: 'USD',
+      receipt: email,
+      notes: {
+        program,
+      },
+    };
+    console.log('before creating order:', options);
+    // Create the order with Razorpay
+    const order = await razorpay.orders.create(options);
+    console.log('After creating order:', order);
+    if (order) {
+      res.status(200).json({
+        success: true,
+        orderId: order.id,
+        amount: amount,
+        key_id: process.env.RAZORPAY_KEY_ID,
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to create order' });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ error: 'Create order Internal Server Error' });
+  }
+});
+
+
+//CAPTURE RAZORPAY PAYMENT
+app.post('/raz-capture-int-payment', async (req, res) => {
+  try {
+    const { paymentId, amount } = req.body;
+
+    // Capture the payment
+    const captureResponse = await razorpay.payments.capture(
+      paymentId,
+      amount,
+      'USD',
+    );
+
+    console.log('captureResponse:', captureResponse);
+
+    // Check if the capture was successful
+    if (captureResponse) {
+      // Store data in Firestore
+      const email = captureResponse.email; // Assuming email is part of the capture response
+      const transactionData = {
+        // Add your transaction data here
+        transactionId: captureResponse.id,
+        orderId: captureResponse.order_id,
+        amount: `$ ${captureResponse.amount/100}`,// CENT to DOLLER.
+        status: captureResponse.status,
+        certification: captureResponse.description,
+        timestamp: new Date().toLocaleString("en-US", {
+          timeZone: "Asia/Kolkata",
+        }),
+      };
+
+      // Reference to the 'after_transaction' collection
+      const userDocRef = db.collection('after_transaction').doc(email);
+      // Ensure the document exists
+      await userDocRef.set({});
+      const transactionRef = userDocRef.collection('transactions');
+      await transactionRef.add(transactionData);
+
+      res.status(200).json({
+        success: true,
+        message: 'Payment captured and transaction recorded',
+        transactionId: captureResponse.id,
+      });
+    } else {
+      res.status(500).json({ error: 'Failed to capture payment' });
+    }
+  } catch (error) {
+    console.error('Error capturing payment:', error);
+    res.status(500).json({ error: 'Capture order Internal Server Error' });
+  }
+});
+
+
+//**** PAYPAL **** */
 //CREATING ORDER [PAYPAL]
 app.post('/create-order', async (req, res) => {
   const url = 'https://api.paypal.com/v2/checkout/orders';
