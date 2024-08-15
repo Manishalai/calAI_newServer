@@ -219,7 +219,8 @@ async function generatePdf(orderData, program) {
 //SEND PDF WITH EMAIL
 async function sendEmailWithPdf(email, pdfBuffer) {
   const mailOptions = {
-    from: 'Kristin Parker <kristin.p@calai.org>',
+    // from: 'Kristin Parker <kristin.p@calai.org>',
+    from: '<info@calai.org>',
     to: email,
     subject: 'Your Order Receipt',
     text: 'Thank you for your purchase. Please find your order receipt attached.',
@@ -227,7 +228,7 @@ async function sendEmailWithPdf(email, pdfBuffer) {
       {
         filename: 'receipt.pdf',
         content: pdfBuffer,
-        contentType: 'application/pdf',//
+        contentType: 'application/pdf',
       },
     ],
   };
@@ -271,16 +272,15 @@ app.post('/create-razorpay-order', async (req, res) => {
         program,
       },
     };
-    console.log('before creating order:', options);
+    // console.log('before creating order:', options);
     // Create the order with Razorpay
     const order = await razorpay.orders.create(options);
-    console.log('After creating order:', order);
+    // console.log('After creating order:', order);
     if (order) {
       res.status(200).json({
         success: true,
         orderId: order.id,
         amount: amount,
-        key_id: process.env.RAZORPAY_KEY_ID,
       });
     } else {
       res.status(500).json({ error: 'Failed to create order' });
@@ -304,7 +304,7 @@ app.post('/raz-capture-payment', async (req, res) => {
       'INR',
     );
 
-    console.log('captureResponse:', captureResponse);
+    // console.log('captureResponse:', captureResponse);
 
     // Check if the capture was successful
     if (captureResponse) {
@@ -314,7 +314,7 @@ app.post('/raz-capture-payment', async (req, res) => {
         // Add your transaction data here
         transactionId: captureResponse.id,
         orderId: captureResponse.order_id,
-        amount: `Rs ${captureResponse.amount/100}`,// paisa to ruppes.
+        amount: `₹${captureResponse.amount/100}`,// paisa to ruppes.
         status: captureResponse.status,
         certification: captureResponse.description,
         timestamp: new Date().toLocaleString("en-US", {
@@ -347,13 +347,11 @@ app.post('/raz-capture-payment', async (req, res) => {
   }
 });
 
-//*** RAZORPAY FOR PAKISTAN *** */
+//*** RAZORPAY FOR INTERNATIONAL *** */
 //CREATING ORDER [RAZORPAY]
 app.post('/create-razorpay-int-order', async (req, res) => {
   try {
     const { amount, program, email } = req.body;
-    console.log("amount:",typeof amount);
-    console.log("am:",amount);
     const options = {
       amount: amount,
       currency: 'USD',
@@ -362,16 +360,13 @@ app.post('/create-razorpay-int-order', async (req, res) => {
         program,
       },
     };
-    console.log('before creating order:', options);
     // Create the order with Razorpay
     const order = await razorpay.orders.create(options);
-    console.log('After creating order:', order);
     if (order) {
       res.status(200).json({
         success: true,
         orderId: order.id,
         amount: amount,
-        key_id: process.env.RAZORPAY_KEY_ID,
       });
     } else {
       res.status(500).json({ error: 'Failed to create order' });
@@ -395,7 +390,7 @@ app.post('/raz-capture-int-payment', async (req, res) => {
       'USD',
     );
 
-    console.log('captureResponse:', captureResponse);
+    // console.log('captureResponse:', captureResponse);
 
     // Check if the capture was successful
     if (captureResponse) {
@@ -470,10 +465,10 @@ app.post('/create-order', async (req, res) => {
 
   try {
     const response = await axios.post(url, data, { headers });
-    console.log('Order Created:', response.data);
+    // console.log('Order Created:', response.data);
     const { links } = response.data;
     const paypalRedirect = links.find((link) => link.rel === 'approve');
-    console.log(paypalRedirect.href);
+    // console.log(paypalRedirect.href);
     if (paypalRedirect) {
       res.json({ orderId: response.id, approvalUrl: paypalRedirect.href });
     } else {
@@ -508,7 +503,7 @@ app.post('/capture-order', async (req, res) => {
     const orderDetailsUrl = `https://api.paypal.com/v2/checkout/orders/${orderId}`;
     const orderDetailsResponse = await axios.get(orderDetailsUrl, { headers });
     const orderDetails = orderDetailsResponse.data;
-    console.log('order details:', orderDetails.status);
+    // console.log('order details:', orderDetails.status);
     if (orderDetails.status === 'COMPLETED') {
       return res.status(400).json({ error: 'Order already captured' });
     }
