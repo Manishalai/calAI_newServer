@@ -259,6 +259,7 @@ const generateToken = async () => {
   }
 };
 
+//*** RAZORPAY FOR INDIAN *** */
 //CREATING ORDER [RAZORPAY]
 app.post('/create-razorpay-order', async (req, res) => {
   try {
@@ -330,8 +331,8 @@ app.post('/raz-capture-payment', async (req, res) => {
       await transactionRef.add(transactionData);
 
       //sending mail
-      // const pdfBuffer = `Pyement successfully Rs ${captureResponse.amount/100}, TransactionId : ${captureResponse.id}` ;
-      // await sendEmailWithPdf(captureResponse.email, pdfBuffer);
+      // const pdfBuffer = await generateRazPdf(captureResponse);
+      // await sendEmailWithPdf( pdfBuffer);
 
       res.status(200).json({
         success: true,
@@ -432,108 +433,108 @@ app.post('/raz-capture-int-payment', async (req, res) => {
 
 //**** PAYPAL **** */
 //CREATING ORDER [PAYPAL]
-app.post('/create-order', async (req, res) => {
-  const url = 'https://api.paypal.com/v2/checkout/orders';
-  const { amount, program, email } = req.body;
-  console.log(amount);
-  const queryParams = new URLSearchParams({
-    certification: program,
-    email: email,
-  });
-  const data = {
-    intent: 'CAPTURE',
-    purchase_units: [
-      {
-        amount: {
-          currency_code: 'USD',
-          value: amount,
-        },
-      },
-    ],
-    application_context: {
-      brand_name: 'CalAI',
-      locale: 'en-US',
-      return_url: `${frontURl}/success?${queryParams}`, // This is the returnUrl
-      cancel_url: `${frontURl}/cancel`, // Your cancel URL
-    },
-  };
-  const accessToken = await generateToken();
-  const headers = {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${accessToken}`,
-  };
+// app.post('/create-order', async (req, res) => {
+//   const url = 'https://api.paypal.com/v2/checkout/orders';
+//   const { amount, program, email } = req.body;
+//   console.log(amount);
+//   const queryParams = new URLSearchParams({
+//     certification: program,
+//     email: email,
+//   });
+//   const data = {
+//     intent: 'CAPTURE',
+//     purchase_units: [
+//       {
+//         amount: {
+//           currency_code: 'USD',
+//           value: amount,
+//         },
+//       },
+//     ],
+//     application_context: {
+//       brand_name: 'CalAI',
+//       locale: 'en-US',
+//       return_url: `${frontURl}/success?${queryParams}`, // This is the returnUrl
+//       cancel_url: `${frontURl}/cancel`, // Your cancel URL
+//     },
+//   };
+//   const accessToken = await generateToken();
+//   const headers = {
+//     'Content-Type': 'application/json',
+//     Authorization: `Bearer ${accessToken}`,
+//   };
 
-  try {
-    const response = await axios.post(url, data, { headers });
-    // console.log('Order Created:', response.data);
-    const { links } = response.data;
-    const paypalRedirect = links.find((link) => link.rel === 'approve');
-    // console.log(paypalRedirect.href);
-    if (paypalRedirect) {
-      res.json({ orderId: response.id, approvalUrl: paypalRedirect.href });
-    } else {
-      res.status(500).json({ error: 'Failed to get PayPal redirect URL' });
-    }
-  } catch (error) {
-    console.log(error.message);
-  }
-});
+//   try {
+//     const response = await axios.post(url, data, { headers });
+//     // console.log('Order Created:', response.data);
+//     const { links } = response.data;
+//     const paypalRedirect = links.find((link) => link.rel === 'approve');
+//     // console.log(paypalRedirect.href);
+//     if (paypalRedirect) {
+//       res.json({ orderId: response.id, approvalUrl: paypalRedirect.href });
+//     } else {
+//       res.status(500).json({ error: 'Failed to get PayPal redirect URL' });
+//     }
+//   } catch (error) {
+//     console.log(error.message);
+//   }
+// });
 
 //CAPTURING ORDER
-app.post('/capture-order', async (req, res) => {
-  try {
-    const { orderId, program } = req.body;
+// app.post('/capture-order', async (req, res) => {
+//   try {
+//     const { orderId, program } = req.body;
 
-    if (!orderId) {
-      return res.status(400).json({ error: 'Order ID is required' });
-    }
+//     if (!orderId) {
+//       return res.status(400).json({ error: 'Order ID is required' });
+//     }
 
-    const url = `https://api.paypal.com/v2/checkout/orders/${orderId}/capture`;
-    const data = {
-      note_to_payer: 'Thank you for your purchase!',
-    };
+//     const url = `https://api.paypal.com/v2/checkout/orders/${orderId}/capture`;
+//     const data = {
+//       note_to_payer: 'Thank you for your purchase!',
+//     };
 
-    const accessToken = await generateToken(); // Ensure this function generates the access token correctly
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${accessToken}`,
-    };
+//     const accessToken = await generateToken(); // Ensure this function generates the access token correctly
+//     const headers = {
+//       'Content-Type': 'application/json',
+//       Authorization: `Bearer ${accessToken}`,
+//     };
 
-    // Check if the order is already captured before capturing it
-    const orderDetailsUrl = `https://api.paypal.com/v2/checkout/orders/${orderId}`;
-    const orderDetailsResponse = await axios.get(orderDetailsUrl, { headers });
-    const orderDetails = orderDetailsResponse.data;
-    // console.log('order details:', orderDetails.status);
-    if (orderDetails.status === 'COMPLETED') {
-      return res.status(400).json({ error: 'Order already captured' });
-    }
+//     // Check if the order is already captured before capturing it
+//     const orderDetailsUrl = `https://api.paypal.com/v2/checkout/orders/${orderId}`;
+//     const orderDetailsResponse = await axios.get(orderDetailsUrl, { headers });
+//     const orderDetails = orderDetailsResponse.data;
+//     // console.log('order details:', orderDetails.status);
+//     if (orderDetails.status === 'COMPLETED') {
+//       return res.status(400).json({ error: 'Order already captured' });
+//     }
 
-    const response = await axios.post(url, data, { headers });
-    // console.log("Order Captured:", response.data);
+//     const response = await axios.post(url, data, { headers });
+//     // console.log("Order Captured:", response.data);
 
-    // Generate PDF
-    const orderData = response.data;
-    const pdfBuffer = await generatePdf(orderData, program);
-    // Send PDF via email
-    await sendEmailWithPdf(orderData.payer.email_address, pdfBuffer);
-    // Send a success response
-    return res.json({
-      message: 'Order captured successfully',
-      transactionId: orderData.id,
-      transactionData: orderData,
-    });
-  } catch (error) {
-    console.error('Error capturing order:', error.message);
+//     // Generate PDF
+//     const orderData = response.data;
+//     const pdfBuffer = await generatePdf(orderData, program);
+//     // Send PDF via email
+//     await sendEmailWithPdf(orderData.payer.email_address, pdfBuffer);
+//     // Send a success response
+//     return res.json({
+//       message: 'Order captured successfully',
+//       transactionId: orderData.id,
+//       transactionData: orderData,
+//     });
+//   } catch (error) {
+//     console.error('Error capturing order:', error.message);
 
-    // Ensure error.response and error.response.data are safely accessed
-    const status = error.response ? error.response.status : 500;
-    const errorDetails = error.response ? error.response.data : 'Unknown error';
+//     // Ensure error.response and error.response.data are safely accessed
+//     const status = error.response ? error.response.status : 500;
+//     const errorDetails = error.response ? error.response.data : 'Unknown error';
 
-    res
-      .status(status)
-      .json({ error: 'Failed to capture order', details: errorDetails });
-  }
-});
+//     res
+//       .status(status)
+//       .json({ error: 'Failed to capture order', details: errorDetails });
+//   }
+// });
 
 //CANCELING ORDER
 app.post('/order-cancel', async (req, res) => {
