@@ -7,6 +7,7 @@ const axios = require('axios');
 const nodemailer = require('nodemailer');
 const PDFDocument = require('pdfkit');
 const bodyParser = require('body-parser');
+const generateRazPdf = require('./generateRazPdf');
 require('./scheduler');
 require('dotenv').config();
 require('firebase/auth');
@@ -42,6 +43,8 @@ app.use((req, res, next) => {
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(bodyParser.json());
+// Serve static files from the 'public' directory
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
 let userEmail;
 const port = process.env.PORT || 5000;
@@ -219,8 +222,8 @@ async function generatePdf(orderData, program) {
 //SEND PDF WITH EMAIL
 async function sendEmailWithPdf(email, pdfBuffer) {
   const mailOptions = {
-    // from: 'Kristin Parker <kristin.p@calai.org>',
-    from: '<info@calai.org>',
+    from: 'Kristin Parker <kristin.p@calai.org>',
+    // from: '<info@calai.org>',
     to: email,
     subject: 'Your Order Receipt',
     text: 'Thank you for your purchase. Please find your order receipt attached.',
@@ -332,7 +335,7 @@ app.post('/raz-capture-payment', async (req, res) => {
 
       //sending mail
       // const pdfBuffer = await generateRazPdf(captureResponse);
-      // await sendEmailWithPdf( pdfBuffer);
+      // await sendEmailWithPdf( captureResponse.email,pdfBuffer);
 
       res.status(200).json({
         success: true,
@@ -415,6 +418,10 @@ app.post('/raz-capture-int-payment', async (req, res) => {
       await userDocRef.set({});
       const transactionRef = userDocRef.collection('transactions');
       await transactionRef.add(transactionData);
+
+      //sending mail
+      // const pdfBuffer = await generateRazPdf(captureResponse);
+      // await sendEmailWithPdf( captureResponse.email,pdfBuffer);
 
       res.status(200).json({
         success: true,
