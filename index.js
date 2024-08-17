@@ -222,7 +222,7 @@ async function generatePdf(orderData, program) {
 //SEND PDF WITH EMAIL
 async function sendEmailWithPdf(email, pdfBuffer) {
   const mailOptions = {
-    from: 'CalAi <info@calai.org>',
+    from: 'CalAI <info@calai.org>',
     to: email,
     subject: 'Your Order Receipt',
     text: 'Thank you for your purchase. Please find your order receipt attached.',
