@@ -31,7 +31,7 @@ async function generatePdf(captureResponse) {
       captureResponse.created_at * 1000,
     ).toLocaleDateString('en-IN');
 
-    //Add header
+    // Add header
     doc
       .image('public/images/Calaiorign.jpg', 50, 45, { width: 50 })
       .fontSize(20)
@@ -69,56 +69,65 @@ async function generatePdf(captureResponse) {
     doc
       .font('Helvetica-Bold')
       .fontSize(13)
-      .fillColor('black')
-      .text('NO.', 55, 245, { width: 50 });
+      .fillColor('#5c5b5b')
+      .text('Description', 60, 245, { width: 200 });
     doc
       .font('Helvetica-Bold')
       .fontSize(13)
-      .fillColor('black')
-      .text('DESCRIPTION', 100, 245, { width: 200 });
-    doc
-      .font('Helvetica-Bold')
-      .fontSize(13)
-      .fillColor('black')
-      .text('AMOUNT', 400, 245, { width: 100 });
+      .fillColor('#5c5b5b')
+      .text('Amount', 400, 245, { width: 100 });
 
-    // Add table row
+    // Add table row with increased vertical spacing and bottom line
     let yPosition = 270;
-    doc.rect(50, yPosition - 5, 500, 30).stroke(); // Draw row border
-    doc.font('Helvetica').fontSize(10).text('1', 55, yPosition, { width: 50 });
-    doc
-      .font('Helvetica')
-      .fontSize(10)
-      .text(programDescription, 100, yPosition, { width: 200 });
-    doc
-      .font('Helvetica')
-      .fontSize(10)
-      .text(`${currency} ${currency == 'INR' ? amount-gstIncluded : amount}`, 400, yPosition, { width: 100 });
+    const rowHeight = 45; // Increase the row height
 
-      if (currency === 'INR') {
-      yPosition += 30;
-      doc.rect(50, yPosition - 5, 500, 30).stroke(); // Draw row border
+    doc
+      .font('Helvetica')
+      .fontSize(10)
+      .fillColor('black')
+      .text(programDescription, 60, yPosition, { width: 200 });
+    doc
+      .font('Helvetica')
+      .fontSize(10)
+      .fillColor('black')
+      .text(`${currency} ${currency === 'INR' ? amount - gstIncluded : amount}`, 400, yPosition, { width: 100 });
+
+    // Draw bottom line under the first row
+    doc.moveTo(50, yPosition + rowHeight - 10).lineTo(550, yPosition + rowHeight - 10).strokeColor('gray').stroke();
+
+    if (currency === 'INR') {
+      yPosition += rowHeight;
       doc
         .font('Helvetica')
         .fontSize(10)
-        .text('18% GST Included', 100, yPosition, { width: 200 });
+        .fillColor('black')
+        .text('18% GST Included', 60, yPosition, { width: 200 });
       doc
         .font('Helvetica')
         .fontSize(10)
+        .fillColor('black')
         .text(`${currency} ${gstIncluded}`, 400, yPosition, { width: 100 });
+
+      // Draw bottom line under the GST row
+      doc.moveTo(50, yPosition + rowHeight - 10).lineTo(550, yPosition + rowHeight - 10).strokeColor('gray').stroke();
     }
 
     // Add total
-    yPosition += 30;
-    doc.rect(50, yPosition - 5, 500, 30).stroke();
+    yPosition += rowHeight;
     doc
       .font('Helvetica-Bold')
       .fontSize(13)
-      .text('Total', 100, yPosition, { width: 100 });
+      .fillColor('black')
+      .text('Total', 60, yPosition, { width: 100 });
     doc
       .font('Helvetica')
       .fontSize(10)
+      .fillColor('black')
       .text(`${currency} ${amount}`, 400, yPosition, { width: 100 });
+
+    // Draw bottom line under the total row
+    doc.moveTo(50, yPosition + rowHeight - 10).lineTo(550, yPosition + rowHeight - 10).strokeColor('gray').stroke();
+
     doc.end();
   });
 }

@@ -222,8 +222,7 @@ async function generatePdf(orderData, program) {
 //SEND PDF WITH EMAIL
 async function sendEmailWithPdf(email, pdfBuffer) {
   const mailOptions = {
-    from: 'Kristin Parker <kristin.p@calai.org>',
-    // from: '<info@calai.org>',
+    from: 'CalAi <info@calai.org>',
     to: email,
     subject: 'Your Order Receipt',
     text: 'Thank you for your purchase. Please find your order receipt attached.',
@@ -334,8 +333,8 @@ app.post('/raz-capture-payment', async (req, res) => {
       await transactionRef.add(transactionData);
 
       //sending mail
-      // const pdfBuffer = await generateRazPdf(captureResponse);
-      // await sendEmailWithPdf( captureResponse.email,pdfBuffer);
+      const pdfBuffer = await generateRazPdf(captureResponse);
+      await sendEmailWithPdf( captureResponse.email,pdfBuffer);
 
       res.status(200).json({
         success: true,
@@ -420,8 +419,8 @@ app.post('/raz-capture-int-payment', async (req, res) => {
       await transactionRef.add(transactionData);
 
       //sending mail
-      // const pdfBuffer = await generateRazPdf(captureResponse);
-      // await sendEmailWithPdf( captureResponse.email,pdfBuffer);
+      const pdfBuffer = await generateRazPdf(captureResponse);
+      await sendEmailWithPdf( captureResponse.email,pdfBuffer);
 
       res.status(200).json({
         success: true,
