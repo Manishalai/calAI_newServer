@@ -16,6 +16,8 @@ require('firebase/firestore');
 // const scheduler = require("./scheduler");
 const cors = require('cors');
 const path = require('path');
+// const { sendDataCRM } = require('./sendDataCRM');
+// const firebaseConfig = require('./firebaseConfig');
 // const frontURl = process.env.FRONT_URL || "https://www.calai.org";
 const frontURl = process.env.FRONT_URL;
 console.log('furl:', frontURl);
@@ -65,10 +67,12 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
+module.exports = { firebase, db };
+
 //PAYPAL CREDENTIALS
 const clientId = process.env.PAYPAL_CLIENT_ID;
 const clientSecret = process.env.PAYPAL_SECRET_KEY;
-const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64');//
+const auth = Buffer.from(`${clientId}:${clientSecret}`).toString('base64'); //
 
 //RAZORPAY CREDENTIALS
 const razorpay = new Razorpay({
@@ -294,7 +298,6 @@ app.post('/create-razorpay-order', async (req, res) => {
   }
 });
 
-
 //CAPTURE RAZORPAY PAYMENT
 app.post('/raz-capture-payment', async (req, res) => {
   try {
@@ -317,11 +320,11 @@ app.post('/raz-capture-payment', async (req, res) => {
         // Add your transaction data here
         transactionId: captureResponse.id,
         orderId: captureResponse.order_id,
-        amount: `₹${captureResponse.amount/100}`,// paisa to ruppes.
+        amount: `₹${captureResponse.amount / 100}`, // paisa to ruppes.
         status: captureResponse.status,
         certification: captureResponse.description,
-        timestamp: new Date().toLocaleString("en-US", {
-          timeZone: "Asia/Kolkata",
+        timestamp: new Date().toLocaleString('en-US', {
+          timeZone: 'Asia/Kolkata',
         }),
       };
 
@@ -334,7 +337,7 @@ app.post('/raz-capture-payment', async (req, res) => {
 
       //sending mail
       const pdfBuffer = await generateRazPdf(captureResponse);
-      await sendEmailWithPdf( captureResponse.email,pdfBuffer);
+      await sendEmailWithPdf(captureResponse.email, pdfBuffer);
 
       res.status(200).json({
         success: true,
@@ -380,7 +383,6 @@ app.post('/create-razorpay-int-order', async (req, res) => {
   }
 });
 
-
 //CAPTURE RAZORPAY PAYMENT
 app.post('/raz-capture-int-payment', async (req, res) => {
   try {
@@ -403,11 +405,11 @@ app.post('/raz-capture-int-payment', async (req, res) => {
         // Add your transaction data here
         transactionId: captureResponse.id,
         orderId: captureResponse.order_id,
-        amount: `$ ${captureResponse.amount/100}`,// CENT to DOLLER.
+        amount: `$ ${captureResponse.amount / 100}`, // CENT to DOLLER.
         status: captureResponse.status,
         certification: captureResponse.description,
-        timestamp: new Date().toLocaleString("en-US", {
-          timeZone: "Asia/Kolkata",
+        timestamp: new Date().toLocaleString('en-US', {
+          timeZone: 'Asia/Kolkata',
         }),
       };
 
@@ -420,7 +422,7 @@ app.post('/raz-capture-int-payment', async (req, res) => {
 
       //sending mail
       const pdfBuffer = await generateRazPdf(captureResponse);
-      await sendEmailWithPdf( captureResponse.email,pdfBuffer);
+      await sendEmailWithPdf(captureResponse.email, pdfBuffer);
 
       res.status(200).json({
         success: true,
@@ -435,7 +437,6 @@ app.post('/raz-capture-int-payment', async (req, res) => {
     res.status(500).json({ error: 'Capture order Internal Server Error' });
   }
 });
-
 
 //**** PAYPAL **** */
 //CREATING ORDER [PAYPAL]
@@ -667,6 +668,132 @@ app.post('/register', async (req, res) => {
   } catch (error) {
     console.error('Error during registration:', error);
     res.status(500).send('Registration failed');
+  }
+});
+
+//************************** HANDLE CRM ROUTE **********************
+// Fetch tokens from Firestore
+const getTokensFromFirestore = async () => {
+  console.log('start getTokensFromFirestore');
+  // console.log('Firestore instance:', db);
+  const docRef = db.collection('tokens').doc('token_data');
+  const docSnap = await docRef.get();
+
+  if (docSnap.exists) {
+    console.log('docSnap Data:', docSnap.data());
+    return docSnap.data();
+  } else {
+    console.log('No such document!');
+    return null;
+  }
+};
+
+// Save tokens to Firestore
+const saveTokensToFirestore = async (accessToken, refreshToken, expiresIn) => {
+  const docRef = db.collection('tokens').doc('token_data');
+
+  await docRef.set({
+    accessToken,
+    refreshToken,
+    expiresAt: new Date(Date.now() + expiresIn * 1000),
+  });
+};
+
+// Generate new access token
+const refreshAccessToken = async () => {
+  console.log('start refresh accesstoken');
+  const tokens = await getTokensFromFirestore();
+  const response = await axios.post(
+    'https://accounts.zoho.in/oauth/v2/token',
+    null,
+    {
+      params: {
+        refresh_token: tokens.refreshToken,
+        client_id: process.env.ZOHO_CLIENT_ID,
+        client_secret: process.env.ZOHO_CLIENT_SECRET,
+        grant_type: 'refresh_token',
+      },
+    },
+  );
+  const { access_token, expires_in } = response.data;
+  await saveTokensToFirestore(access_token, tokens.refreshToken, expires_in);
+  console.log('end refresh accesstoken');
+  return access_token;
+};
+
+// Get access token
+const getAccessToken = async () => {
+  console.log('strat getAccessToken');
+  const tokens = await getTokensFromFirestore();
+  console.log('end getAccessToken:', tokens);
+
+  if (!tokens || new Date() > tokens.expiresAt.toDate()) {
+    console.log('inside new accessToken');
+    return await refreshAccessToken();
+  }
+
+  return tokens.accessToken;
+};
+
+//SEPERATING THE NAME
+const getNameParts = (fullName) => {
+  // Trim and split the name
+  const nameParts = fullName.trim().split(' ');
+
+  // Extract the first name
+  const First_Name = nameParts[0] || '';
+
+  // Extract the last name, defaulting to "User" if not provided
+  const Last_Name = nameParts[1] || 'User';
+
+  return { First_Name, Last_Name };
+};
+
+// Data sending to Zoho CRM
+const sendToZohoCRM = async (leadData) => {
+  let accessToken = await getAccessToken();
+  if (!accessToken) {
+    accessToken = await refreshAccessToken();
+  }
+  const zohoCRMEndpoint = 'https://www.zohoapis.in/crm/v3/Leads';
+
+  const nameData = getNameParts(leadData.leadData.name);
+  try {
+    const requestData = {
+      data: [
+        {
+          Lead_Source: leadData.leadData.source,
+          First_Name: nameData.First_Name,
+          Last_Name: nameData.Last_Name,
+          Email: leadData.leadData.email,
+          Phone: leadData.leadData.phone,
+        },
+      ],
+      trigger: ['approval', 'workflow', 'blueprint'],
+    };
+
+
+    const response = await axios.post(zohoCRMEndpoint, requestData, {
+      headers: {
+        Authorization: `Zoho-oauthtoken ${accessToken}`,
+      },
+    });
+
+    // console.log('Zoho CRM Response:', response.data);
+    return response.data;
+  } catch (error) {
+    console.error('Error sending data to Zoho CRM:', error);
+    throw error;
+  }
+};
+
+app.post('/send-data-crm', async (req, res) => {
+  const leadData = req.body;
+  try {
+    const response = await sendToZohoCRM(leadData);
+    res.status(200).json({ success: true, data: response });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
   }
 });
 
