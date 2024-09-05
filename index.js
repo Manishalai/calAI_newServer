@@ -67,7 +67,6 @@ const firebaseConfig = {
 firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 
-
 //PAYPAL CREDENTIALS
 const clientId = process.env.PAYPAL_CLIENT_ID;
 const clientSecret = process.env.PAYPAL_SECRET_KEY;
@@ -804,5 +803,3 @@ app.get('/', async (req, res) => {
 app.listen(port, () => {
   console.log(`Server is running on port:${port}`);
 });
-
-module.exports = { firebase, db };
